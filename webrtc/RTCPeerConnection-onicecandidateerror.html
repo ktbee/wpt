@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.onicecandidateerror</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+
+promise_test(async t => {
+  const config = {
+    iceServers: [{urls: "turn:123", username: "123", credential: "123"}]
+  };
+  const pc = new RTCPeerConnection(config);
+
+  t.add_cleanup(() => pc.close());
+  const onIceCandidateErrorResolver = new Resolver();
+  pc.onicecandidateerror = t.step_func((event) => {
+  assert_true(event instanceof RTCPeerConnectionIceErrorEvent,
+    'Expect event to be instance of RTCPeerConnectionIceErrorEvent');
+    assert_true(event.errorCode >= 300 && event.errorCode <= 799, "error_code");
+    assert_not_equals(event.errorText, "", "error_text");
+    assert_not_equals(event.hostCandidate, "", "host_candidate");
+    assert_true(event.url.includes("123"), "url");
+    onIceCandidateErrorResolver.resolve();
+  });
+
+  const offerOptions = {offerToReceiveAudio: 1};
+  await pc.setLocalDescription(await pc.createOffer(offerOptions));
+  await onIceCandidateErrorResolver;
+}, 'Surfacing onicecandidateerror');
+
+</script>
